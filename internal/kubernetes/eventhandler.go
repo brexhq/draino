@@ -55,7 +55,9 @@ const (
 	drainRetryAnnotationKey   = "draino/drain-retry"
 	drainRetryAnnotationValue = "true"
 
-	drainoConditionsAnnotationKey = "draino.planet.com/conditions"
+	drainoConditionsAnnotationKey = "draino.kubernetes.io/node-conditions"
+
+	AutoscalerTaint = "ToBeDeletedByClusterAutoscaler"
 )
 
 // Opencensus measurements.
@@ -148,11 +150,23 @@ func (h *DrainingResourceEventHandler) OnDelete(obj interface{}) {
 		}
 		h.drainScheduler.DeleteSchedule(d.Key)
 	}
-
 	h.drainScheduler.DeleteSchedule(n.GetName())
 }
 
 func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
+	// Skip handling the node if the Cluster Autoscaler has set
+	// its deletion taint
+	autoscalerTaint := core.Taint{
+		Key:    AutoscalerTaint,
+		Effect: "NoSchedule",
+	}
+
+	nodeTaints := n.Spec.Taints
+	if len(nodeTaints) > 0 && taintExists(nodeTaints, &autoscalerTaint) {
+		h.logger.Info("Node is being scaled down by Cluster Autoscaler, skipping.")
+		return
+	}
+
 	badConditions := h.offendingConditions(n)
 	if len(badConditions) == 0 {
 		if shouldUncordon(n) {
@@ -336,4 +350,13 @@ func (h *DrainingResourceEventHandler) scheduleDrain(n *core.Node) {
 
 func HasDrainRetryAnnotation(n *core.Node) bool {
 	return n.GetAnnotations()[drainRetryAnnotationKey] == drainRetryAnnotationValue
+}
+
+func taintExists(taints []core.Taint, taintToFind *core.Taint) bool {
+	for _, taint := range taints {
+		if taint.MatchTaint(taintToFind) {
+			return true
+		}
+	}
+	return false
 }
