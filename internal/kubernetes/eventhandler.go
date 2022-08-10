@@ -149,6 +149,7 @@ func (h *DrainingResourceEventHandler) OnDelete(obj interface{}) {
 			return
 		}
 		h.drainScheduler.DeleteSchedule(d.Key)
+		return
 	}
 	h.drainScheduler.DeleteSchedule(n.GetName())
 }
@@ -163,7 +164,7 @@ func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
 
 	nodeTaints := n.Spec.Taints
 	if len(nodeTaints) > 0 && taintExists(nodeTaints, &autoscalerTaint) {
-		h.logger.Info("Node is being scaled down by Cluster Autoscaler, skipping.")
+		h.logger.Info("Node is being scaled down by cluster-autoscaler, skipping...", zap.String("node", n.GetName()))
 		return
 	}
 
@@ -195,7 +196,7 @@ func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
 			}
 		}
 		if isScheduledByOldEvent {
-			h.logger.Info("Already scheduled by an old event, scheduling new drain.", zap.Bool("isValid", isScheduledByOldEvent))
+			h.logger.Info("Already scheduled by an old event, scheduling new drain.", zap.String("node", n.GetName()), zap.Bool("isValid", isScheduledByOldEvent))
 			h.drainScheduler.DeleteSchedule(n.GetName())
 			h.scheduleDrain(n)
 			return

@@ -67,7 +67,7 @@ func (d *DrainSchedules) HasSchedule(name string) (has, failed bool) {
 	if !ok {
 		return false, false
 	}
-	d.logger.Info("HasSchedule", zap.Time("when", sched.when), zap.Time("finish", sched.finish), zap.Bool("isFailed", sched.isFailed()))
+	d.logger.Info("HasSchedule", zap.String("schedule", name), zap.Time("when", sched.when), zap.Time("finish", sched.finish), zap.Bool("isFailed", sched.isFailed()))
 	return true, sched.isFailed()
 }
 
@@ -77,7 +77,7 @@ func (d *DrainSchedules) DeleteSchedule(name string) {
 	if s, ok := d.schedules[name]; ok {
 		s.timer.Stop()
 	} else {
-		d.logger.Error("Failed schedule deletion", zap.String("key", name))
+		d.logger.Error("Failed schedule deletion", zap.String("schedule", name))
 	}
 	delete(d.schedules, name)
 }

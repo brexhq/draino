@@ -349,10 +349,10 @@ func (d *APICordonDrainer) getPods(node string) ([]core.Pod, error) {
 			return nil, errors.Wrap(err, "cannot filter pods")
 		}
 		if passes {
-			d.l.Info("Pod added to list", zap.String("PodName", p.Name))
+			d.l.Info("Pod added to list", zap.String("node", node), zap.String("PodName", p.Name))
 			include = append(include, p)
 		} else {
-			d.l.Info("Pod ignored list", zap.String("PodName", p.Name))
+			d.l.Info("Pod ignored list", zap.String("node", node), zap.String("PodName", p.Name))
 		}
 	}
 	return include, nil
