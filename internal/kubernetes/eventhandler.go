@@ -142,16 +142,15 @@ func (h *DrainingResourceEventHandler) OnUpdate(_, newObj interface{}) {
 // OnDelete does nothing. There's no point cordoning or draining deleted nodes.
 
 func (h *DrainingResourceEventHandler) OnDelete(obj interface{}) {
-	n, ok := obj.(*core.Node)
-	if !ok {
+	if n, ok := obj.(*core.Node); !ok {
 		d, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			return
 		}
 		h.drainScheduler.DeleteSchedule(d.Key)
-		return
+	} else {
+		h.drainScheduler.DeleteSchedule(n.GetName())
 	}
-	h.drainScheduler.DeleteSchedule(n.GetName())
 }
 
 func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
@@ -164,7 +163,7 @@ func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
 
 	nodeTaints := n.Spec.Taints
 	if len(nodeTaints) > 0 && taintExists(nodeTaints, &autoscalerTaint) {
-		h.logger.Info("Node is being scaled down by cluster-autoscaler, skipping...", zap.String("node", n.GetName()))
+		h.logger.Info("Node is being scaled down by cluster-autoscaler, skipping.", zap.String("node", n.GetName()))
 		return
 	}
 

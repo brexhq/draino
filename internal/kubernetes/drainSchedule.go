@@ -55,7 +55,7 @@ func (d *DrainSchedules) IsScheduledByOldEvent(name string, transitionTime time.
 	defer d.Unlock()
 	sched, ok := d.schedules[name]
 	if !ok {
-		return true
+		return false
 	}
 	return sched.when.Before(transitionTime) && !sched.isFailed() && !sched.finish.IsZero()
 }
@@ -67,7 +67,7 @@ func (d *DrainSchedules) HasSchedule(name string) (has, failed bool) {
 	if !ok {
 		return false, false
 	}
-	d.logger.Info("HasSchedule", zap.String("schedule", name), zap.Time("when", sched.when), zap.Time("finish", sched.finish), zap.Bool("isFailed", sched.isFailed()))
+	d.logger.Info("HasSchedule", zap.String("node", name), zap.Time("when", sched.when), zap.Time("finish", sched.finish), zap.Bool("isFailed", sched.isFailed()))
 	return true, sched.isFailed()
 }
 
@@ -76,10 +76,10 @@ func (d *DrainSchedules) DeleteSchedule(name string) {
 	defer d.Unlock()
 	if s, ok := d.schedules[name]; ok {
 		s.timer.Stop()
+		delete(d.schedules, name)
 	} else {
-		d.logger.Error("Failed schedule deletion", zap.String("schedule", name))
+		d.logger.Error("Failed to schedule deletion", zap.String("node", name))
 	}
-	delete(d.schedules, name)
 }
 
 func (d *DrainSchedules) WhenNextSchedule() time.Time {
