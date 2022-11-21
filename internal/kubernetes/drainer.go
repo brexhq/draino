@@ -17,6 +17,7 @@ and limitations under the License.
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -187,7 +188,7 @@ func (d *APICordonDrainer) deleteTimeout() time.Duration {
 // Cordon the supplied node. Marks it unschedulable for new pods.
 func (d *APICordonDrainer) Cordon(n *core.Node, mutators ...nodeMutatorFn) error {
 	for {
-		fresh, err := d.c.CoreV1().Nodes().Get(n.GetName(), meta.GetOptions{})
+		fresh, err := d.c.CoreV1().Nodes().Get(context.Background(), n.GetName(), meta.GetOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "cannot get node %s", n.GetName())
 		}
@@ -201,7 +202,7 @@ func (d *APICordonDrainer) Cordon(n *core.Node, mutators ...nodeMutatorFn) error
 			m(fresh)
 		}
 
-		if _, err := d.c.CoreV1().Nodes().Update(fresh); err != nil {
+		if _, err := d.c.CoreV1().Nodes().Update(context.Background(), fresh, meta.UpdateOptions{}); err != nil {
 			if apierrors.IsConflict(err) {
 				d.l.Info("Sleep to retry for conflict error")
 				time.Sleep(5)
@@ -216,7 +217,7 @@ func (d *APICordonDrainer) Cordon(n *core.Node, mutators ...nodeMutatorFn) error
 
 // Uncordon the supplied node. Marks it schedulable for new pods.
 func (d *APICordonDrainer) Uncordon(n *core.Node, mutators ...nodeMutatorFn) error {
-	fresh, err := d.c.CoreV1().Nodes().Get(n.GetName(), meta.GetOptions{})
+	fresh, err := d.c.CoreV1().Nodes().Get(context.Background(), n.GetName(), meta.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "cannot get node %s", n.GetName())
 	}
@@ -227,7 +228,7 @@ func (d *APICordonDrainer) Uncordon(n *core.Node, mutators ...nodeMutatorFn) err
 	for _, m := range mutators {
 		m(fresh)
 	}
-	if _, err := d.c.CoreV1().Nodes().Update(fresh); err != nil {
+	if _, err := d.c.CoreV1().Nodes().Update(context.Background(), fresh, meta.UpdateOptions{}); err != nil {
 		return errors.Wrapf(err, "cannot uncordon node %s", fresh.GetName())
 	}
 	return nil
@@ -237,7 +238,7 @@ func (d *APICordonDrainer) Uncordon(n *core.Node, mutators ...nodeMutatorFn) err
 func (d *APICordonDrainer) MarkDrain(n *core.Node, when, finish time.Time, failed bool) error {
 	nodeName := n.Name
 	// Refresh the node object
-	freshNode, err := d.c.CoreV1().Nodes().Get(nodeName, meta.GetOptions{})
+	freshNode, err := d.c.CoreV1().Nodes().Get(context.Background(), nodeName, meta.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
@@ -280,7 +281,7 @@ func (d *APICordonDrainer) MarkDrain(n *core.Node, when, finish time.Time, faile
 			},
 		)
 	}
-	if _, err := d.c.CoreV1().Nodes().UpdateStatus(freshNode); err != nil {
+	if _, err := d.c.CoreV1().Nodes().UpdateStatus(context.Background(), freshNode, meta.UpdateOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -335,7 +336,7 @@ func (d *APICordonDrainer) Drain(n *core.Node) error {
 }
 
 func (d *APICordonDrainer) getPods(node string) ([]core.Pod, error) {
-	l, err := d.c.CoreV1().Pods(meta.NamespaceAll).List(meta.ListOptions{
+	l, err := d.c.CoreV1().Pods(meta.NamespaceAll).List(context.Background(), meta.ListOptions{
 		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": node}).String(),
 	})
 	if err != nil {
@@ -370,7 +371,7 @@ func (d *APICordonDrainer) evict(p core.Pod, abort <-chan struct{}, e chan<- err
 			e <- errors.New("pod eviction aborted")
 			return
 		default:
-			err := d.c.CoreV1().Pods(p.GetNamespace()).Evict(&policy.Eviction{
+			err := d.c.CoreV1().Pods(p.GetNamespace()).Evict(context.Background(), &policy.Eviction{
 				ObjectMeta:    meta.ObjectMeta{Namespace: p.GetNamespace(), Name: p.GetName()},
 				DeleteOptions: &meta.DeleteOptions{GracePeriodSeconds: &gracePeriod},
 			})
@@ -397,7 +398,7 @@ func (d *APICordonDrainer) evict(p core.Pod, abort <-chan struct{}, e chan<- err
 
 func (d *APICordonDrainer) awaitDeletion(p core.Pod, timeout time.Duration) error {
 	return wait.PollImmediate(1*time.Second, timeout, func() (bool, error) {
-		got, err := d.c.CoreV1().Pods(p.GetNamespace()).Get(p.GetName(), meta.GetOptions{})
+		got, err := d.c.CoreV1().Pods(p.GetNamespace()).Get(context.Background(), p.GetName(), meta.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return true, nil
 		}
