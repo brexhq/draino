@@ -1,4 +1,4 @@
-FROM golang:1.16.7-alpine3.14 AS build
+FROM golang:1.19.3-alpine3.16 AS build
 
 RUN apk update && apk add git && apk add curl
 
