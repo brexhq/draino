@@ -1,4 +1,4 @@
-FROM golang:1.19.3-alpine3.16 AS build
+FROM golang:1.21.1-alpine3.18 AS build
 
 RUN apk update && apk add git && apk add curl
 
@@ -7,7 +7,7 @@ COPY . .
 
 RUN go build -o /draino ./cmd/draino
 
-FROM alpine:3.14
+FROM alpine:3.18
 
 RUN apk update && apk add ca-certificates
 RUN addgroup -S user && adduser -S user -G user
