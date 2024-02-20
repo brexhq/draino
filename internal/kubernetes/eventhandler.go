@@ -58,6 +58,7 @@ const (
 	drainoConditionsAnnotationKey = "draino.kubernetes.io/node-conditions"
 
 	AutoscalerTaint = "ToBeDeletedByClusterAutoscaler"
+	KarpenterTaint  = "karpenter.sh/disruption"
 )
 
 // Opencensus measurements.
@@ -160,10 +161,14 @@ func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
 		Key:    AutoscalerTaint,
 		Effect: "NoSchedule",
 	}
+	karpenterTaint := core.Taint{
+		Key:    KarpenterTaint,
+		Effect: "NoSchedule",
+	}
 
 	nodeTaints := n.Spec.Taints
-	if len(nodeTaints) > 0 && taintExists(nodeTaints, &autoscalerTaint) {
-		h.logger.Info("Node is being scaled down by cluster-autoscaler, skipping.", zap.String("node", n.GetName()))
+	if len(nodeTaints) > 0 && (taintExists(nodeTaints, &autoscalerTaint) || taintExists(nodeTaints, &karpenterTaint)) {
+		h.logger.Info("Node is being scaled down by cluster-autoscaler/karpenter, skipping.", zap.String("node", n.GetName()))
 		return
 	}
 
