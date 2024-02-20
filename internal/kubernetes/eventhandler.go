@@ -171,6 +171,7 @@ func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
 		// Delete prior scheduled draining if it exists as its draininng now being managed by Karpenter/CAS
 		preHasSchedule, _ := h.drainScheduler.HasSchedule(n.GetName())
 		if preHasSchedule {
+			h.logger.Info("Node was previously scheduled to be drained by is now being scaled down by cluster-autoscaler/karpenter, removing prior schedule.", zap.String("node", n.GetName()))
 			h.drainScheduler.DeleteSchedule(n.GetName())
 		}
 		h.logger.Info("Node is being scaled down by cluster-autoscaler/karpenter, skipping.", zap.String("node", n.GetName()))
