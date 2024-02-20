@@ -168,6 +168,11 @@ func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
 
 	nodeTaints := n.Spec.Taints
 	if len(nodeTaints) > 0 && (taintExists(nodeTaints, &autoscalerTaint) || taintExists(nodeTaints, &karpenterTaint)) {
+		// Delete prior scheduled draining if it exists as its draininng now being managed by Karpenter/CAS
+		preHasSchedule, _ := h.drainScheduler.HasSchedule(n.GetName())
+		if preHasSchedule {
+			h.drainScheduler.DeleteSchedule(n.GetName())
+		}
 		h.logger.Info("Node is being scaled down by cluster-autoscaler/karpenter, skipping.", zap.String("node", n.GetName()))
 		return
 	}
