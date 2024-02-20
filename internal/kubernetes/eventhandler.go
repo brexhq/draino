@@ -57,9 +57,8 @@ const (
 
 	drainoConditionsAnnotationKey = "draino.kubernetes.io/node-conditions"
 
-	AutoscalerTaint     = "ToBeDeletedByClusterAutoscaler"
-	KarpenterTaint      = "karpenter.sh/disruption"
-	KarpenterTaintValue = "disrupting"
+	AutoscalerTaint = "ToBeDeletedByClusterAutoscaler"
+	KarpenterTaint  = "karpenter.sh/disruption"
 )
 
 // Opencensus measurements.
@@ -164,7 +163,6 @@ func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
 	}
 	karpenterTaint := core.Taint{
 		Key:    KarpenterTaint,
-		Value:  KarpenterTaintValue,
 		Effect: "NoSchedule",
 	}
 
