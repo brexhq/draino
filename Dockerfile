@@ -13,3 +13,4 @@ RUN apk update && apk add ca-certificates
 RUN addgroup -S user && adduser -S user -G user
 USER user
 COPY --from=build /draino /draino
+ENTRYPOINT [ "/draino" ]
