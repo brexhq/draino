@@ -57,8 +57,9 @@ const (
 
 	drainoConditionsAnnotationKey = "draino.kubernetes.io/node-conditions"
 
-	AutoscalerTaint = "ToBeDeletedByClusterAutoscaler"
-	KarpenterTaint  = "karpenter.sh/disruption"
+	AutoscalerTaint  = "ToBeDeletedByClusterAutoscaler"
+	KarpenterTaint   = "karpenter.sh/disruption"
+	KarpenterV1Taint = "karpenter.sh/disrupted"
 )
 
 // Opencensus measurements.
@@ -161,13 +162,19 @@ func (h *DrainingResourceEventHandler) HandleNode(n *core.Node) {
 		Key:    AutoscalerTaint,
 		Effect: "NoSchedule",
 	}
+
 	karpenterTaint := core.Taint{
 		Key:    KarpenterTaint,
 		Effect: "NoSchedule",
 	}
 
+	karpenterV1Taint := core.Taint{
+		Key:    KarpenterV1Taint,
+		Effect: "NoSchedule",
+	}
+
 	nodeTaints := n.Spec.Taints
-	if len(nodeTaints) > 0 && (taintExists(nodeTaints, &autoscalerTaint) || taintExists(nodeTaints, &karpenterTaint)) {
+	if len(nodeTaints) > 0 && (taintExists(nodeTaints, &autoscalerTaint) || taintExists(nodeTaints, &karpenterTaint) || taintExists(nodeTaints, &karpenterV1Taint)) {
 		// Delete prior scheduled draining if it exists as its draining now being managed by Karpenter/CAS
 		preHasSchedule, _ := h.drainScheduler.HasSchedule(n.GetName())
 		if preHasSchedule {
