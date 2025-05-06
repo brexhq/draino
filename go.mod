@@ -1,6 +1,6 @@
 module github.com/planetlabs/draino
 
-go 1.23.2
+go 1.24.3
 
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
